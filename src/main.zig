@@ -4,9 +4,11 @@
 //!
 //! dumps the binary data from a given file
 
+// TODO: Use NotCurses to make an interactive ui
+
 const std = @import("std");
 
-pub fn main() !void {
+pub fn main() !u8 {
 
     // TEMP:
     // Code from: ratfactor, here:
@@ -22,8 +24,17 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
 
     // Get and print them!
-    std.debug.print("There are {d} args:\n", .{args.len});
-    for (args) |arg| {
-        std.debug.print("    {s}\n", .{arg});
+    // std.debug.print("There are {d} args:\n", .{args.len});
+    // for (args) |arg| {
+    //     std.debug.print("    {s}\n", .{arg});
+    // }
+
+    if (args.len < 2) {
+        std.debug.print("Error: Expected filename\n", .{});
+        return 1;
     }
+
+    std.debug.print("dumping file: {s}", .{args[1]});
+
+    return 0;
 }
