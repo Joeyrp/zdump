@@ -34,7 +34,14 @@ pub fn main() !u8 {
         return 1;
     }
 
-    std.debug.print("dumping file: {s}", .{args[1]});
+    const dir = std.fs.cwd().realpathAlloc(allocator, "I dunno what this is for {!}");
+    std.debug.print("dumping file:{s}/{s}\n", .{ dir, args[1] });
+
+    // WORKS!
+    std.debug.print("TEST PRINT: {x:02} {x:02} {x:02} {x:02} \n", .{ 5, 16, 32, 128 });
+
+    // const file = try std.fs.cwd().openFile(args[1], .{});
+    // defer file.close();
 
     return 0;
 }
