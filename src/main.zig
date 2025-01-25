@@ -39,8 +39,12 @@ pub fn main() !u8 {
     const opt_cwd_path = std.fs.path.dirname(cwd);
 
     if (opt_cwd_path) |real_path| {
-        std.debug.print("dumping file: {s}/{s}\n", .{ real_path, args[1] });
+        std.debug.print("program dir: {s}\n", .{real_path});
     }
+
+    const cwd_path = try std.fs.cwd().realpathAlloc(allocator, ".");
+    defer allocator.free(cwd_path);
+    std.debug.print("working dir: {s}\n", .{cwd_path});
 
     // WORKS!
     std.debug.print("TEST PRINT: {x:02} {x:02} {x:02} {x:02} \n", .{ 5, 16, 32, 128 });
