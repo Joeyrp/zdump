@@ -7,12 +7,9 @@
 // TODO: Use NotCurses to make an interactive ui
 
 const std = @import("std");
+const config = @import("config.zig");
 
 pub fn main() !u8 {
-
-    // TEMP:
-    // Code from: ratfactor, here:
-    // https://ziggit.dev/t/read-command-line-arguments/220/7
 
     // Get allocator
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -23,12 +20,6 @@ pub fn main() !u8 {
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
 
-    // Get and print them!
-    // std.debug.print("There are {d} args:\n", .{args.len});
-    // for (args) |arg| {
-    //     std.debug.print("    {s}\n", .{arg});
-    // }
-
     if (args.len < 2) {
         std.debug.print("Error: Expected filename\n", .{});
         return 1;
@@ -38,7 +29,10 @@ pub fn main() !u8 {
         const file = try std.fs.cwd().createFile("test_file", .{ .read = true });
         defer file.close();
 
-        _ = try file.write(&[_]u8{ 0xAB, 1, 2, 4, 8, 16, 32, 127, 128 });
+        var i: u32 = 0;
+        while (i < 4) : (i += 1) {
+            _ = try file.write(&[_]u8{ 0xAB, 1, 2, 4, 8, 16, 32, 127, 128 });
+        }
 
         std.debug.print("test file dumped\n", .{});
         return 0;
@@ -56,12 +50,13 @@ pub fn main() !u8 {
     // defer allocator.free(cwd_path);
     // std.debug.print("working dir: {s}\n", .{cwd_path});
 
-    std.debug.print("dumping file: {s}\n", .{args[1]});
-
     // WORKS!
     // std.debug.print("TEST PRINT: {x:02} {x:02} {x:02} {x:02} \n", .{ 5, 16, 32, 128 });
 
-    const file = try std.fs.cwd().openFile(args[1], .{});
+    const conf = try config.Config.init(args);
+    std.debug.print("dumping file: {s}\n", .{conf.target_file});
+
+    const file = try std.fs.cwd().openFile(conf.target_file, .{});
     defer file.close();
 
     const stat = try file.stat();
@@ -70,8 +65,17 @@ pub fn main() !u8 {
     const bytes_read = try file.readAll(buffer);
     _ = bytes_read;
 
+    // std.debug.print("Buffer Size: {d}", .{buffer.len});
+
+    var columns: u32 = 0;
     for (buffer) |byte| {
         std.debug.print("{X:02} ", .{byte});
+
+        columns += 1;
+        if (columns >= conf.num_columns) {
+            std.debug.print("\n", .{});
+            columns = 0;
+        }
     }
 
     std.debug.print("\n", .{});
