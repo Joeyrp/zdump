@@ -9,6 +9,7 @@ pub const Config = struct {
     print_help: bool = false,
     target_file: []const u8 = "",
     block_size: u32 = 1,
+    page_size: u32 = 10,
 
     pub fn init(args: [][:0]u8) !Config {
         var conf = Config{};

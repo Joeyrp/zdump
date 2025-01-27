@@ -1,18 +1,19 @@
 //! file_buffer.zig
 //! copyright 2025 @ Joseph R. Pollack
-
-const Allocator = @import("std").mem.Allocator;
+const std = @import("std");
+const ArrayList = std.ArrayList;
+const Allocator = std.mem.Allocator;
 const Config = @import("config.zig").Config;
 
-const FileBuffer = struct {
+pub const FileBuffer = struct {
     buffer: []u8,
     num_columns: u32,
     block_size: u32,
     page_size: u32,
-    scroll_pos: u32,
+    scroll_pos: u32 = 0,
 
     // Takes ownership of the given buffer
-    pub fn init(conf: *Config, buffer: []u8) FileBuffer {
+    pub fn init(conf: *const Config, buffer: []u8) FileBuffer {
         return FileBuffer{ .buffer = buffer, .num_columns = conf.num_columns, .block_size = conf.block_size, .page_size = conf.page_size };
     }
 
@@ -23,8 +24,30 @@ const FileBuffer = struct {
     // You must free the returned buffer!
     pub fn render(self: FileBuffer, allocator: Allocator) ![]u8 {
         // TODO: FileBuffer.render() method
-        _ = self;
-        _ = allocator;
-        return 0;
+
+        var final_buf = ArrayList(u8).init(allocator);
+        defer final_buf.deinit();
+        //const temp_buf: [128]u8 = undefined;
+
+        // wrt block size: 1 column is a full block. so when
+        // block_size == 1, 1 column == 1 byte, but when
+        // block_size == 2, 1 column == 2 bytes
+        var columns: u32 = 0;
+        for (self.buffer) |byte| {
+            // std.fmt.bufPrint(&temp_buf, "{X:02} ", byte);
+            const temp_buf = try std.fmt.allocPrint(allocator, "{X:02} ", .{byte});
+            try final_buf.appendSlice(temp_buf);
+
+            columns += 1;
+            if (columns >= self.num_columns) {
+                try final_buf.appendSlice("\n");
+                columns = 0;
+            }
+        }
+
+        const return_buf = try allocator.alloc(u8, final_buf.items.len);
+        std.mem.copyForwards(u8, return_buf, final_buf.items);
+
+        return return_buf;
     }
 };
