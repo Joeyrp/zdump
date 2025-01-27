@@ -26,16 +26,34 @@ pub const FileBuffer = struct {
         var final_buf = ArrayList(u8).init(allocator);
         defer final_buf.deinit();
 
-        // wrt block size: 1 column is a full block. so when
-        // block_size == 1, 1 column == 1 byte, but when
-        // block_size == 2, 1 column == 2 bytes
+        var offset: u32 = 0;
         var columns: u32 = 0;
         var blocks: u32 = 0;
+
+        // Render Header
+        try final_buf.appendSlice("         ");
+        var ti: u32 = 0;
+        while (ti < self.num_columns) : (ti += self.block_size) {
+            const tbuf = try std.fmt.allocPrint(allocator, "{X:02}", .{ti});
+            defer allocator.free(tbuf);
+            try final_buf.appendSlice(tbuf);
+
+            var tj: u32 = 0;
+            while (tj < self.block_size * 2 - 1) : (tj += 1) {
+                try final_buf.append(' ');
+            }
+        }
+
+        try final_buf.append('\n');
+
+        // Render Bytes
+        try final_buf.appendSlice("00000000 ");
         for (self.buffer) |byte| {
             const temp_buf = try std.fmt.allocPrint(allocator, "{X:02}", .{byte});
             defer allocator.free(temp_buf);
             try final_buf.appendSlice(temp_buf);
 
+            offset += 1;
             blocks += 1;
             if (blocks >= self.block_size) {
                 try final_buf.append(' ');
@@ -45,6 +63,9 @@ pub const FileBuffer = struct {
             columns += 1;
             if (columns >= self.num_columns) {
                 try final_buf.appendSlice("\n");
+                const tbuf = try std.fmt.allocPrint(allocator, "{X:08} ", .{offset});
+                defer allocator.free(tbuf);
+                try final_buf.appendSlice(tbuf);
                 columns = 0;
             }
         }
