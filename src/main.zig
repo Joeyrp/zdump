@@ -8,7 +8,7 @@
 
 const std = @import("std");
 const config = @import("config.zig");
-const FileBuffer = @import("file_buffer.zig").FileBuffer;
+const BufferRenderer = @import("buffer_renderer.zig").BufferRenderer;
 
 pub fn main() !u8 {
     const stdout = std.io.getStdOut().writer();
@@ -52,7 +52,7 @@ pub fn main() !u8 {
     const bytes_read = try file.readAll(buffer);
     _ = bytes_read;
 
-    var file_buffer = FileBuffer.init(&conf, buffer);
+    var file_buffer = BufferRenderer.init(&conf, buffer);
     const render_buffer = try file_buffer.render(allocator);
     defer allocator.free(render_buffer);
 

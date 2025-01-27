@@ -5,7 +5,7 @@ const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
 const Config = @import("config.zig").Config;
 
-pub const FileBuffer = struct {
+pub const BufferRenderer = struct {
     buffer: []u8,
     num_columns: u32,
     block_size: u32,
@@ -13,16 +13,16 @@ pub const FileBuffer = struct {
     scroll_pos: u32 = 0,
 
     // Takes ownership of the given buffer
-    pub fn init(conf: *const Config, buffer: []u8) FileBuffer {
-        return FileBuffer{ .buffer = buffer, .num_columns = conf.num_columns, .block_size = conf.block_size, .page_size = conf.page_size };
+    pub fn init(conf: *const Config, buffer: []u8) BufferRenderer {
+        return BufferRenderer{ .buffer = buffer, .num_columns = conf.num_columns, .block_size = conf.block_size, .page_size = conf.page_size };
     }
 
-    pub fn deinit(self: *FileBuffer, allocator: Allocator) void {
+    pub fn deinit(self: *BufferRenderer, allocator: Allocator) void {
         allocator.free(self.buffer);
     }
 
     // You must free the returned buffer!
-    pub fn render(self: FileBuffer, allocator: Allocator) ![]u8 {
+    pub fn render(self: BufferRenderer, allocator: Allocator) ![]u8 {
         var final_buf = ArrayList(u8).init(allocator);
         defer final_buf.deinit();
 
