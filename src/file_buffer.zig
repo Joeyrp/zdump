@@ -23,21 +23,24 @@ pub const FileBuffer = struct {
 
     // You must free the returned buffer!
     pub fn render(self: FileBuffer, allocator: Allocator) ![]u8 {
-        // TODO: FileBuffer.render() method
-
         var final_buf = ArrayList(u8).init(allocator);
         defer final_buf.deinit();
-        //const temp_buf: [128]u8 = undefined;
 
         // wrt block size: 1 column is a full block. so when
         // block_size == 1, 1 column == 1 byte, but when
         // block_size == 2, 1 column == 2 bytes
         var columns: u32 = 0;
+        var blocks: u32 = 0;
         for (self.buffer) |byte| {
-            // std.fmt.bufPrint(&temp_buf, "{X:02} ", byte);
-            const temp_buf = try std.fmt.allocPrint(allocator, "{X:02} ", .{byte});
+            const temp_buf = try std.fmt.allocPrint(allocator, "{X:02}", .{byte});
             defer allocator.free(temp_buf);
             try final_buf.appendSlice(temp_buf);
+
+            blocks += 1;
+            if (blocks >= self.block_size) {
+                try final_buf.append(' ');
+                blocks = 0;
+            }
 
             columns += 1;
             if (columns >= self.num_columns) {
