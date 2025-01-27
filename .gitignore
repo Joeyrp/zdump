@@ -3,3 +3,6 @@ zig-out/
 test_file
 zv.txt
 hex_lavender_transparent.toml
+zig-cache
+zellij_layout.toml
+log.txt

@@ -29,29 +29,14 @@ pub fn main() !u8 {
 
     const conf = try config.Config.init(args);
 
-    // if (std.mem.eql(u8, args[1], "--dump-test")) {
     if (conf.dump_test_file) {
-        const file = try std.fs.cwd().createFile("test_file", .{ .read = true });
-        defer file.close();
-
-        var i: u32 = 0;
-        while (i < 4) : (i += 1) {
-            _ = try file.write(&[_]u8{ 0xAB, 1, 2, 4, 8, 16, 32, 127, 128 });
-        }
-
+        try dump_test_file();
         try stdout.print("test file dumped\n", .{});
         return 0;
     }
 
     if (conf.print_help) {
-        try stdout.print("zdump version ???\n", .{});
-        try stdout.print("Usage: zdump [OPTIONS] <target file>\n", .{});
-        try stdout.print("\n", .{});
-        try stdout.print("options:\n", .{});
-        try stdout.print("\t--dump-test\tgenerate a binary file for testing\n", .{});
-        try stdout.print("\t--help\tprint this help message\n", .{});
-        try stdout.print("\t-c <n>\tset the number of columns (default is 16)\n", .{});
-        try stdout.print("\t-b <n>\tblock_size: the number of bytes in a block/column\n", .{});
+        try print_help_text();
         return 0;
     }
 
@@ -68,7 +53,7 @@ pub fn main() !u8 {
     _ = bytes_read;
 
     var file_buffer = FileBuffer.init(&conf, buffer);
-    const render_buffer = file_buffer.render(allocator);
+    const render_buffer = try file_buffer.render(allocator);
     defer allocator.free(render_buffer);
 
     try stdout.print("{s}\n", .{render_buffer});
@@ -78,4 +63,26 @@ pub fn main() !u8 {
     // try stdout.print("\n", .{});
 
     return 0;
+}
+
+fn dump_test_file() !void {
+    const file = try std.fs.cwd().createFile("test_file", .{ .read = true });
+    defer file.close();
+
+    var i: u32 = 0;
+    while (i < 4) : (i += 1) {
+        _ = try file.write(&[_]u8{ 0xAB, 1, 2, 4, 8, 16, 32, 127, 128 });
+    }
+}
+
+fn print_help_text() !void {
+    const stdout = std.io.getStdOut().writer();
+    try stdout.print("zdump version ???\n", .{});
+    try stdout.print("Usage: zdump [OPTIONS] <target file>\n", .{});
+    try stdout.print("\n", .{});
+    try stdout.print("options:\n", .{});
+    try stdout.print("\t--dump-test\tgenerate a binary file for testing\n", .{});
+    try stdout.print("\t--help\tprint this help message\n", .{});
+    try stdout.print("\t-c <n>\tset the number of columns (default is 16)\n", .{});
+    try stdout.print("\t-b <n>\tblock_size: the number of bytes in a block/column\n", .{});
 }

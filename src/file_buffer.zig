@@ -36,6 +36,7 @@ pub const FileBuffer = struct {
         for (self.buffer) |byte| {
             // std.fmt.bufPrint(&temp_buf, "{X:02} ", byte);
             const temp_buf = try std.fmt.allocPrint(allocator, "{X:02} ", .{byte});
+            defer allocator.free(temp_buf);
             try final_buf.appendSlice(temp_buf);
 
             columns += 1;
