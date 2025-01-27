@@ -10,6 +10,7 @@ const std = @import("std");
 const config = @import("config.zig");
 
 pub fn main() !u8 {
+    const stdout = std.io.getStdOut().writer();
 
     // Get allocator
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -21,11 +22,14 @@ pub fn main() !u8 {
     defer std.process.argsFree(allocator, args);
 
     if (args.len < 2) {
-        std.debug.print("Error: Expected filename\n", .{});
+        try stdout.print("Error: Expected filename\n", .{});
         return 1;
     }
 
-    if (std.mem.eql(u8, args[1], "--dump-test")) {
+    const conf = try config.Config.init(args);
+
+    // if (std.mem.eql(u8, args[1], "--dump-test")) {
+    if (conf.dump_test_file) {
         const file = try std.fs.cwd().createFile("test_file", .{ .read = true });
         defer file.close();
 
@@ -34,28 +38,25 @@ pub fn main() !u8 {
             _ = try file.write(&[_]u8{ 0xAB, 1, 2, 4, 8, 16, 32, 127, 128 });
         }
 
-        std.debug.print("test file dumped\n", .{});
+        try stdout.print("test file dumped\n", .{});
         return 0;
     }
 
-    // const cwd = try std.fs.selfExeDirPathAlloc(allocator);
-    // defer allocator.free(cwd);
-    // const opt_cwd_path = std.fs.path.dirname(cwd);
+    if (conf.print_help) {
+        try stdout.print("zdump version ???\n", .{});
+        try stdout.print("Usage: zdump [OPTIONS] <target file>\n", .{});
+        try stdout.print("\n", .{});
+        try stdout.print("options:\n", .{});
+        try stdout.print("\t--dump-test\tgenerate a binary file for testing\n", .{});
+        try stdout.print("\t--help\tprint this help message\n", .{});
+        try stdout.print("\t-c <n>\tset the number of columns (default is 16)\n", .{});
+        try stdout.print("\t-b <n>\tblock_size: the number of bytes in a block/column\n", .{});
+        return 0;
+    }
 
-    // if (opt_cwd_path) |real_path| {
-    //     std.debug.print("program dir: {s}\n", .{real_path});
-    // }
+    try stdout.print("dumping file: {s}\n", .{conf.target_file});
 
-    // const cwd_path = try std.fs.cwd().realpathAlloc(allocator, ".");
-    // defer allocator.free(cwd_path);
-    // std.debug.print("working dir: {s}\n", .{cwd_path});
-
-    // WORKS!
-    // std.debug.print("TEST PRINT: {x:02} {x:02} {x:02} {x:02} \n", .{ 5, 16, 32, 128 });
-
-    const conf = try config.Config.init(args);
-    std.debug.print("dumping file: {s}\n", .{conf.target_file});
-
+    // TODO: Catch and handle errors here
     const file = try std.fs.cwd().openFile(conf.target_file, .{});
     defer file.close();
 
@@ -67,18 +68,21 @@ pub fn main() !u8 {
 
     // std.debug.print("Buffer Size: {d}", .{buffer.len});
 
+    // wrt block size: 1 column is a full block. so when
+    // block_size == 1, 1 column == 1 byte, but when
+    // block_size == 2, 1 column == 2 bytes
     var columns: u32 = 0;
     for (buffer) |byte| {
-        std.debug.print("{X:02} ", .{byte});
+        try stdout.print("{X:02} ", .{byte});
 
         columns += 1;
         if (columns >= conf.num_columns) {
-            std.debug.print("\n", .{});
+            try stdout.print("\n", .{});
             columns = 0;
         }
     }
 
-    std.debug.print("\n", .{});
+    try stdout.print("\n", .{});
 
     return 0;
 }
