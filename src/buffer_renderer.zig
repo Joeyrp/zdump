@@ -32,6 +32,7 @@ pub const BufferRenderer = struct {
         var offset: u32 = 0;
         var columns: u32 = 0;
         var blocks: u32 = 0;
+        var bytes_left_in_block: u32 = self.block_size;
 
         // Render Header
         try final_buf.appendSlice("         ");
@@ -64,14 +65,15 @@ pub const BufferRenderer = struct {
 
             offset += 1;
             blocks += 1;
+            bytes_left_in_block -= 1;
             if (blocks >= self.block_size) {
                 try final_buf.append(' ');
                 blocks = 0;
+                bytes_left_in_block = self.block_size;
             }
 
             columns += 1;
             if (columns >= self.num_columns) {
-                // TODO: Render the decoded bytes in a new column after a space or tab
                 try final_buf.appendSlice(" ");
                 const copy_buf = try allocator.alloc(u8, decode_buf.items.len);
                 defer allocator.free(copy_buf);
@@ -85,6 +87,31 @@ pub const BufferRenderer = struct {
                 decode_buf.clearAndFree();
             }
         }
+
+        // If there's an incomplete block we need to add an extra space for it
+        var partial_block_space: u32 = 1;
+        if (self.block_size == bytes_left_in_block) {
+            bytes_left_in_block = 0;
+            partial_block_space = 0;
+        }
+
+        // Render final decode section
+        const cols_remaining = self.num_columns - columns;
+        const blocks_remaining = cols_remaining / self.block_size;
+        const spaces_per_block = self.block_size * 2 + 1;
+        const spaces_remaining = blocks_remaining * spaces_per_block + 1 + bytes_left_in_block * 2 + partial_block_space;
+
+        // std.debug.print("COLUMNS REMAINING: {d}, BLOCKS REMAINING: {d}, SPACES PER BLOCK: {d}, BYTES LEFT IN LAST BLOCK: {d}, SPACES REMAINING: {d}\n", .{ cols_remaining, blocks_remaining, spaces_per_block, bytes_left_in_block, spaces_remaining });
+
+        var i: u32 = 0;
+        while (i < spaces_remaining) : (i += 1) {
+            try final_buf.appendSlice(" ");
+        }
+        const copy_buf = try allocator.alloc(u8, decode_buf.items.len);
+        defer allocator.free(copy_buf);
+        @memcpy(copy_buf, decode_buf.items);
+        try final_buf.appendSlice(copy_buf);
+        try final_buf.appendSlice("\n");
 
         const return_buf = try allocator.alloc(u8, final_buf.items.len);
         std.mem.copyForwards(u8, return_buf, final_buf.items);
