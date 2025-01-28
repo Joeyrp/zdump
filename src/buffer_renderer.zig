@@ -8,13 +8,13 @@ const Config = @import("config.zig").Config;
 pub const BufferRenderer = struct {
     buffer: []u8,
     num_columns: u32,
+    offset: u32 = 0,
     block_size: u32,
-    page_size: u32,
-    scroll_pos: u32 = 0,
+    page_size: u32 = 10, // Number of rows basically
 
     // Takes ownership of the given buffer
     pub fn init(conf: *const Config, buffer: []u8) BufferRenderer {
-        return BufferRenderer{ .buffer = buffer, .num_columns = conf.num_columns, .block_size = conf.block_size, .page_size = conf.page_size };
+        return BufferRenderer{ .buffer = buffer, .num_columns = conf.num_columns, .offset = conf.offset, .block_size = conf.block_size, .page_size = conf.page_size };
     }
 
     pub fn deinit(self: *BufferRenderer, allocator: Allocator) void {
@@ -22,14 +22,14 @@ pub const BufferRenderer = struct {
     }
 
     // You must free the returned buffer!
-    pub fn render(self: BufferRenderer, allocator: Allocator) ![]u8 {
+    pub fn render(self: *BufferRenderer, allocator: Allocator) ![]u8 {
         var final_buf = ArrayList(u8).init(allocator);
         defer final_buf.deinit();
 
         var decode_buf = ArrayList(u8).init(allocator);
         defer decode_buf.deinit();
 
-        var offset: u32 = 0;
+        var rows: u32 = 0;
         var columns: u32 = 0;
         var blocks: u32 = 0;
         var bytes_left_in_block: u32 = self.block_size;
@@ -51,8 +51,10 @@ pub const BufferRenderer = struct {
         try final_buf.appendSlice(" ascii decoded:\n");
 
         // Render Bytes
-        try final_buf.appendSlice("00000000 ");
-        for (self.buffer) |byte| {
+        const fmt_buf = try std.fmt.allocPrint(allocator, "{X:08} ", .{self.offset});
+        defer allocator.free(fmt_buf);
+        try final_buf.appendSlice(fmt_buf);
+        for (self.buffer[self.offset..]) |byte| {
             const temp_buf = try std.fmt.allocPrint(allocator, "{X:02}", .{byte});
             defer allocator.free(temp_buf);
             try final_buf.appendSlice(temp_buf);
@@ -63,7 +65,7 @@ pub const BufferRenderer = struct {
             defer allocator.free(dc_temp_buf);
             try decode_buf.appendSlice(dc_temp_buf);
 
-            offset += 1;
+            self.offset += 1;
             blocks += 1;
             bytes_left_in_block -= 1;
             if (blocks >= self.block_size) {
@@ -74,17 +76,23 @@ pub const BufferRenderer = struct {
 
             columns += 1;
             if (columns >= self.num_columns) {
+                // Render Decode Column
                 try final_buf.appendSlice(" ");
                 const copy_buf = try allocator.alloc(u8, decode_buf.items.len);
                 defer allocator.free(copy_buf);
                 @memcpy(copy_buf, decode_buf.items);
                 try final_buf.appendSlice(copy_buf);
                 try final_buf.appendSlice("\n");
-                const tbuf = try std.fmt.allocPrint(allocator, "{X:08} ", .{offset});
+                const tbuf = try std.fmt.allocPrint(allocator, "{X:08} ", .{self.offset});
                 defer allocator.free(tbuf);
                 try final_buf.appendSlice(tbuf);
                 columns = 0;
+                rows += 1;
                 decode_buf.clearAndFree();
+            }
+
+            if (rows >= self.page_size) {
+                break;
             }
         }
 
