@@ -69,6 +69,8 @@ fn dump_test_file() !void {
     const file = try std.fs.cwd().createFile("test_file", .{ .read = true });
     defer file.close();
 
+    _ = try file.write("This is the test file!");
+
     var i: u32 = 0;
     while (i < 4) : (i += 1) {
         _ = try file.write(&[_]u8{ 0xAB, 1, 2, 4, 8, 16, 32, 127, 128 });

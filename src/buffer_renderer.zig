@@ -26,6 +26,9 @@ pub const BufferRenderer = struct {
         var final_buf = ArrayList(u8).init(allocator);
         defer final_buf.deinit();
 
+        var decode_buf = ArrayList(u8).init(allocator);
+        defer decode_buf.deinit();
+
         var offset: u32 = 0;
         var columns: u32 = 0;
         var blocks: u32 = 0;
@@ -44,7 +47,7 @@ pub const BufferRenderer = struct {
             }
         }
 
-        try final_buf.append('\n');
+        try final_buf.appendSlice(" ascii decoded:\n");
 
         // Render Bytes
         try final_buf.appendSlice("00000000 ");
@@ -52,6 +55,12 @@ pub const BufferRenderer = struct {
             const temp_buf = try std.fmt.allocPrint(allocator, "{X:02}", .{byte});
             defer allocator.free(temp_buf);
             try final_buf.appendSlice(temp_buf);
+
+            const print_char = if (is_printable(byte)) byte else '.';
+
+            const dc_temp_buf = try std.fmt.allocPrint(allocator, "{c}", .{print_char});
+            defer allocator.free(dc_temp_buf);
+            try decode_buf.appendSlice(dc_temp_buf);
 
             offset += 1;
             blocks += 1;
@@ -62,11 +71,18 @@ pub const BufferRenderer = struct {
 
             columns += 1;
             if (columns >= self.num_columns) {
+                // TODO: Render the decoded bytes in a new column after a space or tab
+                try final_buf.appendSlice(" ");
+                const copy_buf = try allocator.alloc(u8, decode_buf.items.len);
+                defer allocator.free(copy_buf);
+                @memcpy(copy_buf, decode_buf.items);
+                try final_buf.appendSlice(copy_buf);
                 try final_buf.appendSlice("\n");
                 const tbuf = try std.fmt.allocPrint(allocator, "{X:08} ", .{offset});
                 defer allocator.free(tbuf);
                 try final_buf.appendSlice(tbuf);
                 columns = 0;
+                decode_buf.clearAndFree();
             }
         }
 
@@ -76,3 +92,7 @@ pub const BufferRenderer = struct {
         return return_buf;
     }
 };
+
+fn is_printable(byte: u8) bool {
+    return (byte > 31 and byte < 127);
+}
