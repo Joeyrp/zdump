@@ -53,6 +53,16 @@ pub fn main() !u8 {
     _ = bytes_read;
 
     var file_buffer = BufferRenderer.init(&conf, buffer);
+
+    if (!std.mem.eql(u8, conf.find_target, "")) {
+        try stdout.print("Searching for query: {s}\n", .{conf.find_target});
+        if (file_buffer.find_target(conf.find_target)) {
+            try stdout.print("FOUND!\n", .{});
+        } else {
+            try stdout.print("Failed to find seach query\n", .{});
+        }
+    }
+
     const render_buffer = try file_buffer.render(allocator);
     defer allocator.free(render_buffer);
 

@@ -8,6 +8,7 @@ pub const Config = struct {
     dump_test_file: bool = false,
     print_help: bool = false,
     target_file: []const u8 = "",
+    find_target: []const u8 = "",
     offset: u32 = 0,
     block_size: u32 = 1,
     page_size: u32 = 10,
@@ -50,7 +51,7 @@ fn check_optionals(conf: *Config, at: u32, args: [][:0]u8) !u32 {
 
 const FnType = *const fn (*Config, u32, [][:0]u8) error{ Overflow, InvalidCharacter }!u32;
 
-const parse_funcs: [6]FnType = .{ parse_num_cols, parse_block_size, parse_dump_test_file, parse_help, parse_page_size, parse_offset };
+const parse_funcs: [7]FnType = .{ parse_num_cols, parse_block_size, parse_dump_test_file, parse_help, parse_page_size, parse_offset, parse_find_target };
 
 // Returns the number of "args" consumed
 fn parse_num_cols(conf: *Config, at: u32, args: [][:0]u8) !u32 {
@@ -114,6 +115,17 @@ fn parse_offset(conf: *Config, at: u32, args: [][:0]u8) !u32 {
     if (std.mem.eql(u8, args[idx], "-o")) {
         idx += 1;
         conf.offset = try std.fmt.parseInt(u32, args[idx], 10);
+        return 2;
+    }
+
+    return 0;
+}
+
+fn parse_find_target(conf: *Config, at: u32, args: [][:0]u8) !u32 {
+    var idx = at;
+    if (std.mem.eql(u8, args[idx], "-f")) {
+        idx += 1;
+        conf.find_target = args[idx];
         return 2;
     }
 

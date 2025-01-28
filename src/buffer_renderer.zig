@@ -21,6 +21,30 @@ pub const BufferRenderer = struct {
         allocator.free(self.buffer);
     }
 
+    // Returns true if the query was found, call render after to render at the found offset
+    pub fn find_target(self: *BufferRenderer, target: []const u8) bool {
+        var base_iter: u32 = 0;
+        while (base_iter < self.buffer.len) : (base_iter += 1) {
+            var sub_iter: u32 = base_iter;
+            var target_iter: u32 = 0;
+            while (sub_iter < self.buffer.len and target_iter < target.len) {
+                if (self.buffer[sub_iter] != target[target_iter]) {
+                    break;
+                }
+
+                sub_iter += 1;
+                target_iter += 1;
+            }
+
+            if (target_iter == target.len) {
+                self.offset = base_iter;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // You must free the returned buffer!
     pub fn render(self: *BufferRenderer, allocator: Allocator) ![]u8 {
         var final_buf = ArrayList(u8).init(allocator);
