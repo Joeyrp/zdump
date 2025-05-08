@@ -79,7 +79,7 @@ fn dump_test_file() !void {
     const file = try std.fs.cwd().createFile("test_file", .{ .read = true });
     defer file.close();
 
-    _ = try file.write("This is the test file!");
+    _ = try file.write("This is the zdump test file!");
 
     var i: u32 = 0;
     while (i < 4) : (i += 1) {
