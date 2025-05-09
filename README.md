@@ -6,4 +6,4 @@ zdump is a simple hex viewer for searching and dumping data from binary files. W
 
 `zdump [OPTIONS] <target file>` is the general format for running zdump. You can do `zdump --help` to get more info. For basic testing you can generate a test binary with `zdump --dump-test`.
 
-![demo_screen](assets/demo.PNG)
+![demo_screen](https://raw.githubusercontent.com/Joeyrp/zdump/refs/heads/master/assets/demo.png)
